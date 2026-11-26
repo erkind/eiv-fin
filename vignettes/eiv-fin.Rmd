@@ -1,0 +1,108 @@
+---
+title: "Errors-in-Variables Regression and Attenuation Bias in Finance"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Errors-in-Variables Regression and Attenuation Bias in Finance}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7)
+```
+
+```{r setup}
+library(eivfin)
+```
+
+## Attenuation bias in beta estimation
+
+Consider a single-index return model: the excess return of an asset is
+
+$$r_i = \alpha + \beta \xi_i + \varepsilon_i,$$
+
+where $\xi_i$ is the (unobserved) systematic factor. In practice the factor
+is proxied by a measured quantity $m_i = \xi_i + \eta_i$ -- an index that
+imperfectly tracks the true market portfolio, as in Roll's (1977) critique.
+Ordinary least squares of $r_i$ on $m_i$ then produces an attenuated slope,
+biased toward zero by the reliability factor
+$\sigma_\xi^2 / (\sigma_\xi^2 + \sigma_\eta^2)$.
+
+We simulate a market factor with monthly standard deviation of 4% and a
+proxy observed with a 1% measurement error:
+
+```{r simulation}
+set.seed(2024)
+n <- 240
+beta_true <- 1.2
+xi <- rnorm(n, sd = 0.04)
+r  <- 0.005 + beta_true * xi + rnorm(n, sd = 0.01)
+m  <- xi + rnorm(n, sd = 0.01)
+
+ols_beta <- cov(m, r) / var(m)
+ols_beta
+```
+
+The attenuation factor is `0.04^2 / (0.04^2 + 0.01^2) = 0.941`, so OLS is
+expected near `1.2 * 0.941 = 1.13`. Both measurement errors here have
+equal variance (1% each), so orthogonal regression (total least squares)
+is the appropriate EIV estimator; with `lambda = 1`, Deming regression is
+the same estimator and serves as a cross-check:
+
+```{r estimates}
+fit_tls <- tls(m, r, B = 500, seed = 2024)
+fit_dem <- deming(m, r, lambda = 1, se = "jackknife")
+
+data.frame(
+  truth  = beta_true,
+  OLS    = ols_beta,
+  TLS    = unname(coef(fit_tls)[2]),
+  Deming = unname(coef(fit_dem)[2])
+)
+```
+
+Both EIV estimators remove essentially all of the attenuation bias, while
+OLS understates the beta by roughly 6%.
+
+```{r plot}
+plot(m, r, pch = 19, cex = 0.6,
+     xlab = "observed factor proxy", ylab = "excess return")
+abline(a = 0.005, b = beta_true, lty = 2)
+abline(a = coef(fit_tls)[1], b = coef(fit_tls)[2], col = "red")
+legend("topleft", lty = c(2, 1), col = c("black", "red"),
+       legend = c("true relation", "TLS fit"), bty = "n")
+```
+
+## Unequal error variances: Deming regression
+
+When the two error variances differ, TLS is inconsistent and the Deming
+estimator with the known ratio
+$\lambda = \sigma_{e_y}^2 / \sigma_{e_x}^2$ should be used instead. Here
+the return equation noise is 2% while the proxy error stays at 1%, so
+$\lambda = 4$:
+
+```{r unequal}
+set.seed(2025)
+r2 <- 0.005 + beta_true * xi + rnorm(n, sd = 0.02)
+m2 <- xi + rnorm(n, sd = 0.01)
+
+fit_dem2 <- deming(m2, r2, lambda = 4, se = "jackknife")
+data.frame(
+  truth  = beta_true,
+  OLS    = cov(m2, r2) / var(m2),
+  Deming = unname(coef(fit_dem2)[2])
+)
+confint(fit_dem2)
+```
+
+The Deming estimator with the correct ratio is again close to the true
+beta, while OLS is attenuated by the larger reliability factor
+`0.04^2 / (0.04^2 + 0.01^2 + 0.02^2)`.
+
+## Notes and references
+
+- Fuller, W. A. (1987). *Measurement Error Models*. Wiley.
+- Roll, R. (1977). A critique of the asset pricing theory's tests.
+  *Journal of Financial Economics*, 4(2), 129-176.
+- Carroll, R. J., Ruppert, D., Stefanski, L. A. and Crainiceanu, C. M.
+  (2006). *Measurement Error in Nonlinear Models*, 2nd ed. Chapman & Hall.

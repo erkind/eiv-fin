@@ -1,0 +1,19 @@
+Package: eivfin
+Type: Package
+Title: Errors-in-Variables Regression Models with Applications in Finance
+Version: 0.1.0
+Authors@R: person("ErkinD", role = c("aut", "cre"), email = "73018025+erkind@users.noreply.github.com")
+Description: Fits errors-in-variables (measurement error) regression models.
+    Provides total least squares (orthogonal regression) with bootstrap
+    covariance estimation and Deming regression with a known error variance
+    ratio and jackknife standard errors. Both return 'eivfit' objects with
+    conventional coef(), vcov(), confint() and summary() methods. Worked
+    examples illustrate attenuation bias in financial beta estimation.
+License: GPL-3
+Encoding: UTF-8
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+Config/testthat/edition: 3

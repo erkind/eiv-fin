@@ -1,5 +1,6 @@
 export(deming)
 export(tls)
+importFrom(stats, coef)
 S3method(coef,eivfit)
 S3method(confint,eivfit)
 S3method(deming,default)

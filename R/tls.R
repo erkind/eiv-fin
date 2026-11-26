@@ -86,7 +86,7 @@ tls_matrix <- function(X, y) {
 #' summary(fit)
 #'
 #' @export
-tls <- function(x, y, B = 999, seed = NULL) {
+tls <- function(x, y, B = 999, seed = NULL, ...) {
   UseMethod("tls")
 }
 

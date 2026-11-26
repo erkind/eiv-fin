@@ -74,7 +74,7 @@ deming_fit <- function(x, y, lambda) {
 #' summary(fit)
 #'
 #' @export
-deming <- function(x, y, lambda = 1, se = c("jackknife", "none")) {
+deming <- function(x, y, lambda = 1, se = c("jackknife", "none"), ...) {
   UseMethod("deming")
 }
 
